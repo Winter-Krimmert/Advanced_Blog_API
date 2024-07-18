@@ -1,48 +1,21 @@
-from flask import Blueprint, request, jsonify
-from werkzeug.security import check_password_hash
-from models import User
-from utils.utils import encode_token, decode_token
-from functools import wraps
+from flask_httpauth import HTTPTokenAuth
+from utils.utils import decode_token
+from models import User  # Changed from Customer to User
+from app import db
 
-auth_bp = Blueprint('auth', __name__)
+# Create an instance of the HTTPTokenAuth class
+token_auth = HTTPTokenAuth(scheme='Bearer')
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    if not data or not data.get('username') or not data.get('password'):
-        print("Missing username or password")
-        return jsonify({"error": "Missing username or password"}), 400
-
-    user = User.query.filter_by(username=data['username']).first()
-    if user:
-        print(f"User found: {user.username}")
+@token_auth.verify_token
+def verify_token(token):
+    # Decode the token to get the user id
+    user_id = decode_token(token)
+    if user_id is not None:
+        # Get the user with that ID
+        return db.session.get(User, user_id)
     else:
-        print("User not found")
+        return None
 
-    if user and check_password_hash(user.password, data['password']):
-        token = encode_token(user.id)
-        print(f"Generated token: {token}")
-        return jsonify({"message": "Login successful", "token": token}), 200
-    else:
-        print("Invalid credentials")
-        return jsonify({"error": "Invalid credentials"}), 401
-
-def login_required(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token or not token.startswith('Bearer '):
-            print("Missing or invalid token")
-            return jsonify({"error": "Missing or invalid token"}), 401
-
-        token = token.split()[1]  # Extract the token part
-        try:
-            user_id = decode_token(token)  # Decode and verify the token
-            kwargs['user_id'] = user_id  # Pass the user ID to the route function
-        except Exception as e:
-            print(f"Token decoding error: {e}")
-            return jsonify({"error": str(e)}), 401
-
-        return func(*args, **kwargs)
-
-    return wrapper
+@token_auth.error_handler
+def handle_error(status_code):
+    return {"error": "Invalid token. Please try again"}, status_code

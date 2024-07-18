@@ -1,21 +1,61 @@
-from flask import Flask
-from models import db
-from auth import auth_bp  # Import the auth blueprint
-from routes import post_bp  # Import the post blueprint
+from flask import Flask, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from config import Config
+from dotenv import load_dotenv
+import os
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your_secret_key'  # Ensure this is set
+# Initialize SQLAlchemy globally
+db = SQLAlchemy()
 
-db.init_app(app)
+def create_app():
+    """
+    Application factory function to create and configure the Flask application.
+    """
+    app = Flask(__name__)
 
-with app.app_context():
-    db.create_all()
+    # Load environment variables from .env file
+    load_dotenv()
 
-# Register blueprints
-app.register_blueprint(auth_bp, url_prefix='/auth')
-app.register_blueprint(post_bp, url_prefix='/post')
+    # Load configuration from config.py
+    app.config.from_object(Config)
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
+    # Initialize database with the app
+    db.init_app(app)
+    migrate = Migrate(app, db)  # Initialize migrate with the app
+
+    # Import routes here to avoid circular import
+    from routes import init_app
+    init_app(app)
+
+    # Define custom error handlers
+    @app.errorhandler(404)
+    def not_found(error):
+        """
+        Handle 404 Not Found error.
+        """
+        return jsonify({"error": "Not found"}), 404
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        """
+        Handle 400 Bad Request error.
+        """
+        return jsonify({"error": "Bad request"}), 400
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        """
+        Handle 500 Internal Server Error.
+        """
+        return jsonify({"error": "Internal server error"}), 500
+
+    return app
 
 if __name__ == '__main__':
+    app = create_app()
+    with app.app_context():
+        from models import User, Post, Comment  # Import inside app_context to avoid circular import
+        db.create_all()  # Create database tables if they don't exist
     app.run(debug=True)
