@@ -1,12 +1,10 @@
 from flask import Flask
-from flask_migrate import Migrate, MigrateCommand
-from flask_script import Manager
-from app import app, db  # Replace 'app' with your Flask application instance and 'db' with your SQLAlchemy instance
+from flask_migrate import Migrate
+from app import create_app, db  # Ensure these imports are correct
 
+# Create an app instance using the factory function
+app = create_app()
 migrate = Migrate(app, db)
-manager = Manager(app)
-
-manager.add_command('db', MigrateCommand)
 
 if __name__ == '__main__':
-    manager.run()
+    app.run()

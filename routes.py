@@ -8,11 +8,18 @@ from schemas import UserSchema, PostSchema, CommentSchema
 from caching import cache
 from limiter import limiter
 from models import db  # Import the db object
+from sqlalchemy.exc import SQLAlchemyError
+
+#function to get remote address
+def get_remote_address():
+    return request.remote_addr
 
 # Schemas
 user_schema = UserSchema()
 post_schema = PostSchema()
 comment_schema = CommentSchema()
+
+
 
 def init_app(app):
     @app.route('/')
@@ -38,6 +45,7 @@ def init_app(app):
 
     # User Routes
     @app.route('/register', methods=['POST'])
+    @limiter.limit("50 per minute", key_func=get_remote_address)
     def register():
         data = request.get_json()
         hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
@@ -56,6 +64,7 @@ def init_app(app):
 
     # Route to login and generate JWT token
     @app.route('/login', methods=['POST'])
+    @limiter.limit("5 per minute", key_func=get_remote_address)
     def login():
         data = request.get_json()
         username = data.get('username')
@@ -70,8 +79,9 @@ def init_app(app):
             return jsonify({'token': token}), 200
 
         return jsonify({'error': 'Invalid username or password'}), 401
-
+    #User routes
     @app.route('/users', methods=["POST"])
+    @limiter.limit("5 per minute", key_func=get_remote_address)
     def create_user():
         if not request.is_json:
             return {"error": "Request body must be application/json"}, 400  # Bad Request by Client
@@ -96,12 +106,15 @@ def init_app(app):
 
     @app.route('/users/<int:id>', methods=["GET"])
     @token_auth.login_required
+    @cache.cached(timeout=60)
     def get_user(id):
         user = User.query.get_or_404(id)
-        return user_schema.jsonify(user)
+        user_data = user_schema.dump(user)
+        return jsonify(user_data)
 
     @app.route('/users/<int:id>', methods=["PUT"])
     @token_auth.login_required
+    @limiter.limit("5 per minute", key_func=get_remote_address)
     def update_user(id):
         logged_in_user = token_auth.current_user()
         if logged_in_user.id != id:
@@ -109,14 +122,19 @@ def init_app(app):
         user = User.query.get_or_404(id)
         try:
             data = request.json
-            user_schema.load(data, instance=user, partial=True)
+            # Load data into the schema
+            user_data = user_schema.load(data, partial=True)
+            # Update user instance with new data
+            for key, value in user_data.items():
+                setattr(user, key, value)
             db.session.commit()
-            return user_schema.jsonify(user)
+            return jsonify(user_schema.dump(user))  # Corrected line
         except ValidationError as err:
             return err.messages, 400
 
     @app.route('/users/<int:id>', methods=["DELETE"])
     @token_auth.login_required
+    @limiter.limit("5 per minute", key_func=get_remote_address)
     def delete_user(id):
         logged_in_user = token_auth.current_user()
         if logged_in_user.id != id:
@@ -129,109 +147,173 @@ def init_app(app):
     # Post Routes
     @app.route('/posts', methods=["POST"])
     @token_auth.login_required
+    @limiter.limit("10 per minute", key_func=get_remote_address)
     def create_post():
         logged_in_user = token_auth.current_user()
         if not request.is_json:
             return {"error": "Request body must be application/json"}, 400  # Bad Request by Client
         try:
-            data = request.json
-            post_data = post_schema.load(data)
+            post_data = request.get_json()
             new_post = Post(
                 title=post_data['title'],
                 content=post_data['content'],
-                user_id=logged_in_user.id
+                user_id=logged_in_user.id  # Assuming the post is created by the logged-in user
             )
             db.session.add(new_post)
             db.session.commit()
-            return post_schema.jsonify(new_post), 201  # Created
+            return jsonify(post_schema.dump(new_post)), 201  # Created
         except ValidationError as err:
-            return err.messages, 400
-
-    @app.route('/posts/<int:id>', methods=["GET"])
-    def get_post(id):
-        post = Post.query.get_or_404(id)
-        return post_schema.jsonify(post)
-
+            return jsonify(err.messages), 400  # Bad request
+    
     @app.route('/posts/<int:id>', methods=["PUT"])
     @token_auth.login_required
+    @limiter.limit("10 per minute", key_func=get_remote_address)
     def update_post(id):
         logged_in_user = token_auth.current_user()
         post = Post.query.get_or_404(id)
+        
         if post.user_id != logged_in_user.id:
-            return {"error": "Unauthorized"}, 401
+            return jsonify({"error": "Unauthorized"}), 401
+        
         try:
             data = request.json
-            post_schema.load(data, instance=post, partial=True)
+            # Load the data into the schema, but without updating the instance
+            loaded_data = post_schema.load(data, partial=True)
+            
+            # Update the post instance with the loaded data
+            for key, value in loaded_data.items():
+                setattr(post, key, value)
+            
             db.session.commit()
-            return post_schema.jsonify(post)
+            
+            # Serialize the updated post instance
+            result = post_schema.dump(post)
+            return jsonify(result)
+        
         except ValidationError as err:
-            return err.messages, 400
+            return jsonify(err.messages), 400
+
+    @app.route('/posts/<int:id>', methods=["GET"])
+    @cache.cached(timeout=60)
+    def get_post(id):
+        post = Post.query.get_or_404(id)
+        post_data = post_schema.dump(post)
+        return jsonify(post_data)
 
     @app.route('/posts/<int:id>', methods=["DELETE"])
     @token_auth.login_required
+    @limiter.limit("10 per minute", key_func=get_remote_address)
     def delete_post(id):
         logged_in_user = token_auth.current_user()
         post = Post.query.get_or_404(id)
         if post.user_id != logged_in_user.id:
-            return {"error": "Unauthorized"}, 401
+            return jsonify({"error": "Unauthorized"}), 401
         db.session.delete(post)
         db.session.commit()
-        return '', 204
-
-    @app.route('/posts', methods=["GET"])
-    @cache.cached(timeout=60)
-    @limiter.limit("50 per hour")
+        return jsonify({"message": "Post deleted successfully"}), 204
+    
+    @app.route('/posts', methods=['GET'])
+    @cache.cached(timeout=60, query_string=True)
+    @limiter.limit("10 per minute", key_func=get_remote_address)
     def list_posts():
-        args = request.args
-        page = args.get('page', 1, type=int)
-        per_page = args.get('per_page', 10, type=int)
-        search = args.get('search', '')
-        query = Post.query.filter(Post.title.like(f'%{search}%')).paginate(page, per_page, False)
-        posts = query.items
-        return post_schema.jsonify(posts, many=True)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        search = request.args.get('search', '', type=str)
+        
+        try:
+            # Using SQLAlchemy to query with LIKE for SQLite
+            query = Post.query.filter(Post.title.like(f'%{search}%')).paginate(page=page, per_page=per_page, error_out=False)
+            posts = query.items
+            
+            # Serialize data with the desired fields
+            serialized_posts = []
+            for post in posts:
+                serialized_posts.append({
+                    'content': post.content,
+                    'id': post.id,
+                    'title': post.title,
+                    'user_id': post.user_id
+                })
+            
+            # Return JSON response
+            return jsonify(serialized_posts)
+        except SQLAlchemyError as e:
+            return jsonify({"error": str(e)}), 500
 
-    # Comment Routes
     @app.route('/comments', methods=["POST"])
     @token_auth.login_required
+    @limiter.limit("10 per minute", key_func=get_remote_address)
     def create_comment():
         logged_in_user = token_auth.current_user()
         if not request.is_json:
-            return {"error": "Request body must be application/json"}, 400  # Bad Request by Client
+            return {"error": "Request body must be application/json"}, 400  # Bad Request
+
         try:
             data = request.json
+            # Include post_id in the data being validated
             comment_data = comment_schema.load(data)
+          
+            # Make sure the post_id is provided and valid
+            post_id = comment_data.get('post_id')
+            if not post_id:
+                return {"error": "Post ID is required"}, 400  # Bad Request
+            
+            # Create the new comment
             new_comment = Comment(
                 content=comment_data['content'],
-                user_id=logged_in_user.id
+                user_id=logged_in_user.id,
+                post_id=post_id
             )
             db.session.add(new_comment)
             db.session.commit()
-            return comment_schema.jsonify(new_comment), 201  # Created
+
+            serialized_comment = comment_schema.dump(new_comment)
+            return jsonify(serialized_comment), 201  # Created
+
+
         except ValidationError as err:
-            return err.messages, 400
+            return err.messages, 400  # Bad Request
 
     @app.route('/comments/<int:id>', methods=["GET"])
+    @token_auth.login_required
+    @cache.cached(timeout=60)
     def get_comment(id):
         comment = Comment.query.get_or_404(id)
-        return comment_schema.jsonify(comment)
+        comment_data = comment_schema.dump(comment)
+        return jsonify(comment_data)
 
     @app.route('/comments/<int:id>', methods=["PUT"])
     @token_auth.login_required
+    @limiter.limit("10 per minute", key_func=get_remote_address)
     def update_comment(id):
         logged_in_user = token_auth.current_user()
         comment = Comment.query.get_or_404(id)
+        
         if comment.user_id != logged_in_user.id:
-            return {"error": "Unauthorized"}, 401
+            return jsonify({"error": "Unauthorized"}), 401
+        
         try:
             data = request.json
-            comment_schema.load(data, instance=comment, partial=True)
+            # Load the data into the schema, but without updating the instance
+            loaded_data = comment_schema.load(data, partial=True)
+            
+            # Update the comment instance with the loaded data
+            for key, value in loaded_data.items():
+                setattr(comment, key, value)
+            
             db.session.commit()
-            return comment_schema.jsonify(comment)
+            
+            # Serialize the updated comment instance
+            result = comment_schema.dump(comment)
+            return jsonify(result)
+        
         except ValidationError as err:
-            return err.messages, 400
+            return jsonify(err.messages), 400
+
 
     @app.route('/comments/<int:id>', methods=["DELETE"])
     @token_auth.login_required
+    @limiter.limit("10 per minute", key_func=get_remote_address)
     def delete_comment(id):
         logged_in_user = token_auth.current_user()
         comment = Comment.query.get_or_404(id)

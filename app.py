@@ -1,12 +1,17 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_swagger_ui import get_swaggerui_blueprint
 from config import Config
 from dotenv import load_dotenv
 import os
+from extensions import db
+from caching import cache
+from models import User, Post, Comment
+from routes import init_app
 
 # Initialize SQLAlchemy globally
-db = SQLAlchemy()
+# db = SQLAlchemy()
 
 def create_app():
     """
@@ -25,9 +30,35 @@ def create_app():
     db.init_app(app)
     migrate = Migrate(app, db)  # Initialize migrate with the app
 
-    # Import routes here to avoid circular import
-    from routes import init_app
+    # Initialize cache with the app
+    cache.init_app(app)
+
+    # Reference the models to ensure they are detected
+    with app.app_context():
+        db.create_all()
+
+    # Call init_app to register routes
     init_app(app)
+
+    # Swagger UI configuration
+    SWAGGER_URL = '/swagger'
+    API_URL = '/swagger/swagger.yaml'  # Path to your Swagger YAML file
+
+    swagger_ui_blueprint = get_swaggerui_blueprint(
+        SWAGGER_URL,
+        API_URL,
+        config={
+            'app_name': "Blog_2 COPY 3"
+        }
+    )
+
+    # Register the Swagger UI blueprint
+    app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
+
+    # Serve the Swagger YAML file
+    @app.route('/swagger/swagger.yaml')
+    def swagger_yaml():
+        return send_from_directory('swagger', 'swagger.yaml')
 
     # Define custom error handlers
     @app.errorhandler(404)
@@ -52,10 +83,3 @@ def create_app():
         return jsonify({"error": "Internal server error"}), 500
 
     return app
-
-if __name__ == '__main__':
-    app = create_app()
-    with app.app_context():
-        from models import User, Post, Comment  # Import inside app_context to avoid circular import
-        db.create_all()  # Create database tables if they don't exist
-    app.run(debug=True)

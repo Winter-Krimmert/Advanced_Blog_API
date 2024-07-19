@@ -18,6 +18,7 @@ class CommentSchema(Schema):
     id = fields.Int(dump_only=True)
     content = fields.Str(required=True)
     date_posted = fields.DateTime(dump_only=True)
+    post_id = fields.Int(required=True)
     author = fields.Nested(UserSchema, only=['id', 'username'])
     post = fields.Nested(PostSchema, only=['id', 'title'])
 
