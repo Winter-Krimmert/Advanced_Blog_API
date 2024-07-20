@@ -1,4 +1,4 @@
-name: Flask Blog API CI/CD
+name: Flask E-Commerce CI/CD
 
 on:
   push:
@@ -16,48 +16,47 @@ jobs:
         with:
           python-version: 3.11.9
 
-      - name: Install dependencies
+      - name: Create Virtual Environment
         run: |
           python -m venv venv
-          . venv/bin/activate
+          source venv/bin/activate
+
+      - name: Install dependencies
+        run: |
           python -m pip install -U pip
           python -m pip install -r requirements.txt
 
       - name: Print debugging information
         run: |
-          . venv/bin/activate
           echo "Python Version: $(python --version)"
           echo "Working Directory: $(pwd)"
           echo "Contents of Working Directory: $(ls -l)"
           echo "Contents of site-packages: $(ls -l venv/lib/python*/site-packages)"
 
-  # Commented out test stage until tests are available
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v4
+#   test:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
 
-  #     - name: Set Up Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: 3.11.9
+#       - name: Set Up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: 3.11.9
 
-  #     - name: Install dependencies
-  #       run: |
-  #         python -m venv venv
-  #         . venv/bin/activate
-  #         python -m pip install -U pip
-  #         python -m pip install -r requirements.txt
+#       - name: Create Virtual Environment
+#         run: |
+#           python -m venv venv
+#           source venv/bin/activate
 
-  #     - name: Run any database migrations
-  #       run: |
-  #         . venv/bin/activate
-  #         flask db upgrade
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install -U pip
+#           python -m pip install -r requirements.txt
 
-  #     - name: Run the tests
-  #       run: |
-  #         . venv/bin/activate
-  #         python -m unittest discover -v -s .
+#       - name: Run any database migrations
+#         run: flask db upgrade
 
- 
+#       - name: Run the tests
+#         run: python -m unittest discover -v -s .
+
