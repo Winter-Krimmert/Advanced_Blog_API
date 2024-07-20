@@ -48,7 +48,7 @@ def create_app():
         SWAGGER_URL,
         API_URL,
         config={
-            'app_name': "Blog_2 COPY 3"
+            'app_name': "Advanced Blog API"
         }
     )
 

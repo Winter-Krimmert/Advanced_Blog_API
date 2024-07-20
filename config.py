@@ -8,8 +8,10 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY') or os.urandom(24)
     
-    # Set default to SQLite if DATABASE_URL is not provided
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or 'sqlite:///adv_db2.db'
+
+    # Database configuration
+    SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('SQLALCHEMY_DATABASE_URL')
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
