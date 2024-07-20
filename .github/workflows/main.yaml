@@ -19,17 +19,15 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m venv venv
-          echo "source venv/bin/activate" >> $GITHUB_ENV
-          python3 -m pip install -U pip
-          python3 -m pip install -r requirements.txt
+          venv/bin/pip install -U pip
+          venv/bin/pip install -r requirements.txt
 
       - name: Print debugging information
         run: |
-          source venv/bin/activate
-          echo "Python Version: $(python3 --version)"
-          echo "Working Directory: $(pwd)"
-          echo "Contents of Working Directory: $(ls -l)"
-          echo "Contents of site-packages: $(ls -l venv/lib/python*/site-packages)"
+          venv/bin/python --version
+          pwd
+          ls -l
+          ls -l venv/lib/python*/site-packages
 
   # Commented out test stage until tests are available
   # test:
@@ -46,17 +44,12 @@ jobs:
   #     - name: Install dependencies
   #       run: |
   #         python3 -m venv venv
-  #         echo "source venv/bin/activate" >> $GITHUB_ENV
-  #         python3 -m pip install -U pip
-  #         python3 -m pip install -r requirements.txt
+  #         venv/bin/pip install -U pip
+  #         venv/bin/pip install -r requirements.txt
 
   #     - name: Run any database migrations
-  #       run: |
-  #         source venv/bin/activate
-  #         flask db upgrade
+  #       run: venv/bin/flask db upgrade
 
   #     - name: Run the tests
-  #       run: |
-  #         source venv/bin/activate
-  #         python3 -m unittest discover -v -s .
+  #       run: venv/bin/python -m unittest discover -v -s .
 
