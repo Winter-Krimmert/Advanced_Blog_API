@@ -19,10 +19,14 @@ jobs:
       - name: Create Virtual Environment
         run: |
           python -m venv venv
+          ls -la venv  # List the contents of the virtual environment directory
+          ls -la venv/bin  # List the contents of the virtual environment's bin directory
           source venv/bin/activate
+          which python  # Verify the path to the Python interpreter
 
       - name: Install dependencies
         run: |
+          source venv/bin/activate
           python -m pip install -U pip
           python -m pip install -r requirements.txt
 
@@ -32,6 +36,8 @@ jobs:
           echo "Working Directory: $(pwd)"
           echo "Contents of Working Directory: $(ls -l)"
           echo "Contents of site-packages: $(ls -l venv/lib/python*/site-packages)"
+          echo "List virtual environment directory: $(ls -la venv/bin)"
+          echo "Print PATH environment variable: $PATH"
 
   test:
     runs-on: ubuntu-latest
@@ -47,10 +53,13 @@ jobs:
       - name: Create Virtual Environment
         run: |
           python -m venv venv
+          ls -la venv
+          ls -la venv/bin
           source venv/bin/activate
 
       - name: Install dependencies
         run: |
+          source venv/bin/activate
           python -m pip install -U pip
           python -m pip install -r requirements.txt
 
@@ -59,13 +68,3 @@ jobs:
 
       - name: Run the tests
         run: python -m unittest discover -v -s .
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Deploy the App
-        env:
-          deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-        run: curl "$deploy_url"
