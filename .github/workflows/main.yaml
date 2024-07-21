@@ -1,4 +1,4 @@
-name: Flask E-Commerce CI/CD
+name: Advanced Blog API CI/CD
 on:
   push:
     branches: [main, master]
