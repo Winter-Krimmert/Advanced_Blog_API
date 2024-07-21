@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -20,22 +19,19 @@ jobs:
       - name: Create Virtual Environment
         run: |
           python -m venv venv
-          echo "VIRTUAL_ENV=$(pwd)/venv" >> $GITHUB_ENV
-          echo "PATH=$(pwd)/venv/bin:$PATH" >> $GITHUB_ENV
+          source venv/bin/activate
 
       - name: Install dependencies
         run: |
-          source $VIRTUAL_ENV/bin/activate
           python -m pip install -U pip
           python -m pip install -r requirements.txt
 
       - name: Print debugging information
         run: |
-          source $VIRTUAL_ENV/bin/activate
           echo "Python Version: $(python --version)"
           echo "Working Directory: $(pwd)"
           echo "Contents of Working Directory: $(ls -l)"
-          echo "Contents of site-packages: $(ls -l $(python -c 'import site; print(site.getsitepackages()[0])'))"
+          echo "Contents of site-packages: $(ls -l venv/lib/python*/site-packages)"
 
   test:
     runs-on: ubuntu-latest
@@ -51,22 +47,25 @@ jobs:
       - name: Create Virtual Environment
         run: |
           python -m venv venv
-          echo "VIRTUAL_ENV=$(pwd)/venv" >> $GITHUB_ENV
-          echo "PATH=$(pwd)/venv/bin:$PATH" >> $GITHUB_ENV
+          source venv/bin/activate
 
       - name: Install dependencies
         run: |
-          source $VIRTUAL_ENV/bin/activate
           python -m pip install -U pip
           python -m pip install -r requirements.txt
 
       - name: Run any database migrations
-        run: |
-          source $VIRTUAL_ENV/bin/activate
-          flask db upgrade
+        run: flask db upgrade
 
       - name: Run the tests
-        run: |
-          source $VIRTUAL_ENV/bin/activate
-          python -m unittest discover -v -s .
+        run: python -m unittest discover -v -s .
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy the App
+        env:
+          deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl "$deploy_url"
