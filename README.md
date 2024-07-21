@@ -12,6 +12,8 @@ This project aims to offer a robust blogging solution that supports:
 - Rate limiting and caching for performance
 - Interactive API documentation
 
+The API is also thoroughly tested to ensure reliability and robustness. Test cases cover various scenarios for all major functionalities, including user management, post management, and comment management.
+
 ## Features
 
 - **User Management**: CRUD operations for managing users.
@@ -21,6 +23,7 @@ This project aims to offer a robust blogging solution that supports:
 - **Rate Limiting**: Protect endpoints with request limits.
 - **Caching**: Improve performance with caching for GET requests.
 - **Swagger Documentation**: Interactive API documentation using Swagger UI.
+- **Comprehensive Testing**: Automated tests for all major functionalities and endpoints.
 
 ## Technologies Used
 
@@ -33,6 +36,7 @@ This project aims to offer a robust blogging solution that supports:
 - **Marshmallow**: A library for object serialization and deserialization, used for validating and formatting input and output data.
 - **SQLite**: Lightweight database used for development and testing.
 - **JWT**: JSON Web Tokens for secure authentication and authorization.
+- **pytest**: Testing framework used for ensuring the reliability and correctness of the API.
 
 ## Getting Started
 
