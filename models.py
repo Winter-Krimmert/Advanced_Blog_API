@@ -25,7 +25,7 @@ class Post(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(db.String(255), nullable=False)
-    content: Mapped[str] = mapped_column(db.String, nullable=True)
+    content: Mapped[str] = mapped_column(db.String(255), nullable=True)
     user_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     comments: Mapped[list['Comment']] = relationship('Comment', backref='post', lazy=True)
 

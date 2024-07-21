@@ -44,6 +44,11 @@ def init_app(app):
             return err.messages, 400
 
     # User Routes
+    # @app.route('/register', methods=['POST'])
+    # @limiter.limit("50 per minute", key_func=get_remote_address)
+    # def register():
+    #     return jsonify({'message': 'Register route is working'}), 200
+
     @app.route('/register', methods=['POST'])
     @limiter.limit("50 per minute", key_func=get_remote_address)
     def register():
