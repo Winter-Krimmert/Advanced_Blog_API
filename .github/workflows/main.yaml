@@ -1,4 +1,4 @@
-name: Flask E-Commerce CI/CD
+name: Flask Advanced Blog CI/CD
 
 on:
   push:
