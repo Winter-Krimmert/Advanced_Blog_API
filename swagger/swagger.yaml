@@ -120,6 +120,17 @@ paths:
                 $ref: '#/components/schemas/User'
         '400':
           description: Bad Request
+      x-tests:
+        - id: test_register_user
+          description: Tests user registration endpoint with valid data.
+          assertions:
+            - status_code: 201
+            - message: 'User created successfully'
+        - id: test_successful_authenticate
+          description: Tests user authentication with valid credentials.
+          assertions:
+            - status_code: 200
+            - token: present
 
     get:
       summary: Retrieve a list of users
@@ -147,6 +158,12 @@ paths:
                 $ref: '#/components/schemas/User'
         '404':
           description: User not found
+      x-tests:
+        - id: test_get_user
+          description: Tests retrieval of a user by ID.
+          assertions:
+            - status_code: 200
+            - username: 'testuser'
 
     put:
       summary: Update a user by ID
@@ -170,6 +187,12 @@ paths:
           description: Bad Request
         '404':
           description: User not found
+      x-tests:
+        - id: test_update_user
+          description: Tests updating a user by ID.
+          assertions:
+            - status_code: 200
+            - name: 'Updated Name'
 
     delete:
       summary: Delete a user by ID
@@ -180,6 +203,11 @@ paths:
           description: User deleted
         '404':
           description: User not found
+      x-tests:
+        - id: test_delete_user
+          description: Tests deletion of a user by ID.
+          assertions:
+            - status_code: 204
 
   /posts:
     post:
@@ -200,6 +228,12 @@ paths:
                 $ref: '#/components/schemas/Post'
         '400':
           description: Bad Request
+      x-tests:
+        - id: test_create_post
+          description: Tests creation of a new post with valid data.
+          assertions:
+            - status_code: 201
+            - id: present
 
     get:
       summary: Retrieve a list of posts
@@ -246,6 +280,12 @@ paths:
                 $ref: '#/components/schemas/Post'
         '404':
           description: Post not found
+      x-tests:
+        - id: test_get_post
+          description: Tests retrieval of a post by ID.
+          assertions:
+            - status_code: 200
+            - title: 'Test Post'
 
     put:
       summary: Update a post by ID
@@ -269,6 +309,12 @@ paths:
           description: Bad Request
         '404':
           description: Post not found
+      x-tests:
+        - id: test_update_post
+          description: Tests updating a post by ID.
+          assertions:
+            - status_code: 200
+            - title: 'Updated Title'
 
     delete:
       summary: Delete a post by ID
@@ -279,6 +325,11 @@ paths:
           description: Post deleted
         '404':
           description: Post not found
+      x-tests:
+        - id: test_delete_post
+          description: Tests deletion of a post by ID.
+          assertions:
+            - status_code: 204
 
   /comments:
     post:
@@ -299,6 +350,12 @@ paths:
                 $ref: '#/components/schemas/Comment'
         '400':
           description: Bad Request
+      x-tests:
+        - id: test_create_comment
+          description: Tests creation of a new comment with valid data.
+          assertions:
+            - status_code: 201
+            - id: present
 
   /comments/{id}:
     get:
@@ -314,6 +371,12 @@ paths:
                 $ref: '#/components/schemas/Comment'
         '404':
           description: Comment not found
+      x-tests:
+        - id: test_get_comment
+          description: Tests retrieval of a comment by ID.
+          assertions:
+            - status_code: 200
+            - content: 'This is a comment.'
 
     put:
       summary: Update a comment by ID
@@ -337,6 +400,12 @@ paths:
           description: Bad Request
         '404':
           description: Comment not found
+      x-tests:
+        - id: test_update_comment
+          description: Tests updating a comment by ID.
+          assertions:
+            - status_code: 200
+            - content: 'Updated Comment'
 
     delete:
       summary: Delete a comment by ID
@@ -347,3 +416,8 @@ paths:
           description: Comment deleted
         '404':
           description: Comment not found
+      x-tests:
+        - id: test_delete_comment
+          description: Tests deletion of a comment by ID.
+          assertions:
+            - status_code: 204
