@@ -105,9 +105,13 @@ def init_app(app):
             )
             db.session.add(new_user)
             db.session.commit()
-            return user_schema.jsonify(new_user), 201  # Created
+
+            # Serialize the user and return as JSON
+            result = user_schema.dump(new_user)
+            return jsonify(result), 201  # Created
         except ValidationError as err:
             return err.messages, 400
+
 
     @app.route('/users/<int:id>', methods=["GET"])
     @token_auth.login_required
