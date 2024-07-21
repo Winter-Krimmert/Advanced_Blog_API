@@ -10,9 +10,6 @@ from caching import cache
 from models import User, Post, Comment
 from routes import init_app
 
-# Initialize SQLAlchemy globally
-# db = SQLAlchemy()
-
 def create_app():
     """
     Application factory function to create and configure the Flask application.
@@ -83,3 +80,7 @@ def create_app():
         return jsonify({"error": "Internal server error"}), 500
 
     return app
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run()
